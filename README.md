@@ -17,7 +17,7 @@ On macOS or Linux, use `source .venv/bin/activate` instead. Then install the dep
 
 ```sh
 python -m pip install --upgrade pip
-python -m pip install requests
+python -m pip install -r requirements.txt
 python -m pip install git+https://github.com/Sevoii/GlobalSim.git
 ```
 
