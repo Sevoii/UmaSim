@@ -49,7 +49,7 @@ python src/scrape_umalogs.py 21 --limit 100
 python src/scrape_umalogs.py "Capricorn Cup 2" --limit 100
 ```
 
-The scraper accepts a number, an ID such as `cm21`, or a cup name such as `CAPRICORN_CUP_2`. It writes `data/cm21_teams.json` for these examples, replacing an existing file with that name. Use `--out` to choose another directory or `--snapshot ID` to select a specific snapshot. If a meeting has multiple UmaLogs variants, specify the variant ID, such as `cm16-post`.
+The scraper accepts a number, an ID such as `cm21`, or a cup name such as `CAPRICORN_CUP_2`. Use `--offset 100 --limit 100` to skip the first 100 ranked teams and fetch up to the next 100. It writes `data/cm21_teams.json` for these examples, replacing an existing file with that name even when an offset is specified. Use `--out data/other_teams.json` to choose a different output file or `--snapshot ID` to select a specific snapshot. If a meeting has multiple UmaLogs variants, specify the variant ID, such as `cm16-post`.
 
 Convert a captured race JSON into a team file for comparison:
 

@@ -1,7 +1,7 @@
 """Run one GlobalSim race between the first 3 scraped teams and print the results.
 
 Usage:
-    python src/run_race.py [--teams ../data/cm21_teams.json] [--seed 1]
+    python src/run_race.py [--teams ../data/cm21_midrange_teams.json] [--seed 1]
 """
 import argparse
 import json

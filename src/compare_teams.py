@@ -9,12 +9,17 @@ Team A and team B are JSON files holding either {"id": ..., "members": [...]} or
 list of 3 runners. Teams in the list with the same id are excluded from the opponents.
 
 Usage:
-    python src/compare_teams.py CAPRICORN_CUP_2 ../data/cm21_teams.json team_a.json team_b.json --trials 1000
+    python src/compare_teams.py CAPRICORN_CUP_2 ../data/cm21_midrange_teams.json team_a.json team_b.json --trials 1000
 """
 import argparse
 import json
 import math
+import os
 import random
+import re
+import sys
+from collections import Counter
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from statistics import NormalDist, fmean, stdev
 
@@ -22,6 +27,7 @@ from globalsim import ChampionsMeeting, PreparedRace, RaceBuilder, Strategy, Uma
 from tqdm import tqdm
 
 MOOD = 2  # Champions Meeting runners are at Great mood
+SKILL_LINE = re.compile(r"^    .*  #(\d+)\s+Lv\d")  # a skill row in UmaBuilder's summary
 TEAM_SIZE = 3
 FIELD_SIZE = 9
 SEED_MAX = 2 ** 31 - 1  # the retail runtime requires signed 32-bit seeds
@@ -89,7 +95,19 @@ def run_trial(cm, tested, opponents, seed, gates):
         raise RuntimeError(f"GlobalSim error: {replay.metadata['error']}")
     results = replay.metadata["results"]
     orders = [result["finishOrder"] for result in results]
-    return orders, distances_from_top(replay, race.course.distance), time_gaps(results)
+    return (orders, distances_from_top(replay, race.course.distance), time_gaps(results),
+            activated_skills(replay.metadata, len(results)))
+
+
+def activated_skills(metadata, horse_count):
+    """Per runner, the set of skill IDs (as strings) that activated at least once."""
+    activated = [set() for _ in range(horse_count)]
+    for event in metadata["skillEvents"]:
+        skill_id = event["skillId"]
+        if isinstance(skill_id, str) and not skill_id.isdecimal():
+            continue  # non-skill events such as "kakari" (rushing)
+        activated[event["horseIndex"]].add(str(int(skill_id)))
+    return activated
 
 
 def mean_ci(values, z):
@@ -123,16 +141,112 @@ class Tally:
         self.team = team
         self.name = name
         self.wins = []  # 1 if a team member finished 1st, per trial
+        self.win_count = 0
         self.places = [[] for _ in range(TEAM_SIZE)]  # 1 = 1st
         self.distances = [[] for _ in range(TEAM_SIZE)]
         self.times = [[] for _ in range(TEAM_SIZE)]
+        self.skill_procs = [Counter() for _ in range(TEAM_SIZE)]  # races each skill activated in
 
-    def add(self, orders, distances, times):
+    def add(self, orders, distances, times, skills):
         self.wins.append(int(min(orders[:TEAM_SIZE]) == 0))
+        self.win_count += self.wins[-1]
         for k in range(TEAM_SIZE):
             self.places[k].append(orders[k] + 1)
             self.distances[k].append(distances[k])
             self.times[k].append(times[k])
+            self.skill_procs[k].update(skills[k])
+
+
+# Per-process state for batched runs, set once by init_worker so each task only
+# carries (seed, opponent indices, gates) instead of the full team data.
+_WORKER = {}
+
+
+def init_worker(cm_name, team_a, team_b, pool):
+    _WORKER.update(cm=ChampionsMeeting[cm_name], team_a=team_a, team_b=team_b, pool=pool)
+
+
+def run_paired_trial(trial):
+    """Run one trial for both tested teams with the same seed, opponents and gates."""
+    seed, opponent_indices, gates = trial
+    opponents = [_WORKER["pool"][i] for i in opponent_indices]
+    return (run_trial(_WORKER["cm"], _WORKER["team_a"], opponents, seed, gates),
+            run_trial(_WORKER["cm"], _WORKER["team_b"], opponents, seed, gates))
+
+
+def run_all(trials, init_args, tally_a, tally_b, label, workers, batch_size):
+    """Run every trial (in a process pool when workers > 1), recording results in trial order."""
+    bar = tqdm(total=len(trials), desc=label, unit="trial", dynamic_ncols=True, file=sys.stderr)
+
+    def record(result):
+        result_a, result_b = result
+        tally_a.add(*result_a)
+        tally_b.add(*result_b)
+        bar.set_postfix({"A wins": tally_a.win_count, "B wins": tally_b.win_count}, refresh=False)
+        bar.update()
+
+    executor = None
+    try:
+        if workers == 1:
+            init_worker(*init_args)
+            for trial in trials:
+                record(run_paired_trial(trial))
+        else:
+            executor = ProcessPoolExecutor(workers, initializer=init_worker, initargs=init_args)
+            for result in executor.map(run_paired_trial, trials, chunksize=batch_size):
+                record(result)
+    finally:
+        # Close the bar first so any traceback or the summary starts on a clean line, and
+        # drop queued batches instead of waiting for them when interrupted.
+        bar.close()
+        if executor is not None:
+            executor.shutdown(wait=True, cancel_futures=True)
+
+
+def stat_line(tally, k, z):
+    place, place_half = mean_ci(tally.places[k], z)
+    metres, metres_half = mean_ci(tally.distances[k], z)
+    secs, secs_half = mean_ci(tally.times[k], z)
+    return (f"avg place {place:.2f} ± {place_half:.2f}   avg from top {metres:.2f} ± {metres_half:.2f} m   "
+            f"{secs:.2f} ± {secs_half:.2f} s")
+
+
+def win_rate_line(tally, n, z, level):
+    low, high = wilson_ci(tally.win_count, n, z)
+    return f"Team win rate  {tally.win_count / n:.1%}  ({level} {low:.1%} to {high:.1%})"
+
+
+def print_full(name, tally, n, z, level):
+    print("=" * 72)
+    print(f"{name}: {tally.name}  ({team_label(tally.team)})")
+    print(win_rate_line(tally, n, z, level))
+    print("=" * 72)
+    for k, member in enumerate(tally.team["members"]):
+        print()
+        print(with_proc_rates(str(UmaBuilder.from_json(member).mood(MOOD)), tally.skill_procs[k], n))
+        print(f"  {'Results':<10} {stat_line(tally, k, z)}")
+    print()
+
+
+def with_proc_rates(summary, procs, n):
+    """Append each skill's proc rate (% of races it activated in) to the UmaBuilder summary."""
+    lines = summary.splitlines()
+    skill_lines = [i for i, line in enumerate(lines) if SKILL_LINE.match(line)]
+    if skill_lines:
+        width = max(len(lines[i]) for i in skill_lines)
+        for i in skill_lines:
+            skill_id = SKILL_LINE.match(lines[i]).group(1)
+            lines[i] = f"{lines[i]:<{width}}  {procs[skill_id] / n:6.1%} procs"
+    return "\n".join(lines)
+
+
+def print_compact(name, tally, n, z, level):
+    print(f"{name}: {tally.name}")
+    print(f"  {win_rate_line(tally, n, z, level)}")
+    for k, member in enumerate(tally.team["members"]):
+        label = f"{Uma(member['charaId']).label} ({Strategy(member['strategy']).name.replace('_', ' ').title()})"
+        print(f"    {label:<32} {stat_line(tally, k, z)}")
+    print()
 
 
 def main():
@@ -145,9 +259,17 @@ def main():
     parser.add_argument("--trials", type=int, default=100)
     parser.add_argument("--confidence", type=float, default=0.95, help="Confidence level (default 0.95)")
     parser.add_argument("--rng-seed", type=int, help="Seed for trial generation (for reproducible runs)")
+    parser.add_argument("--workers", type=int, default=os.cpu_count(),
+                        help="Processes running trials in parallel (default: all cores; 1 = no pool)")
+    parser.add_argument("--batch-size", type=int, default=16,
+                        help="Trials sent to a worker at a time (default 16)")
+    parser.add_argument("--compact", action="store_true",
+                        help="Print one line per Uma instead of the full runner summaries")
     args = parser.parse_args()
     if args.trials < 2:
         parser.error("--trials must be at least 2 for a confidence interval")
+    if args.workers < 1 or args.batch_size < 1:
+        parser.error("--workers and --batch-size must be at least 1")
 
     cm = ChampionsMeeting[args.cm]
     z = NormalDist().inv_cdf(0.5 + args.confidence / 2)
@@ -158,36 +280,24 @@ def main():
     if len(pool) < 2:
         raise SystemExit("The team list needs at least 2 opponent teams besides the tested teams")
 
+    # Draw every trial up front so results are identical for any --workers value.
     rng = random.Random(args.rng_seed)
-    tally_a, tally_b = Tally(team_a, args.team_a.stem), Tally(team_b, args.team_b.stem)
-    progress = tqdm(range(args.trials), desc=cm.label, unit="trial")
-    for _ in progress:
+    trials = []
+    for _ in range(args.trials):
         seed = rng.randint(0, SEED_MAX)
-        opponents = rng.sample(pool, 2)
+        opponent_indices = rng.sample(range(len(pool)), 2)
         gates = rng.sample(range(FIELD_SIZE), FIELD_SIZE)
-        tally_a.add(*run_trial(cm, team_a, opponents, seed, gates))
-        tally_b.add(*run_trial(cm, team_b, opponents, seed, gates))
-        progress.set_postfix({"A wins": sum(tally_a.wins), "B wins": sum(tally_b.wins)}, refresh=False)
+        trials.append((seed, opponent_indices, gates))
+
+    tally_a, tally_b = Tally(team_a, args.team_a.stem), Tally(team_b, args.team_b.stem)
+    run_all(trials, (cm.name, team_a, team_b, pool), tally_a, tally_b, cm.label,
+            min(args.workers, args.trials), args.batch_size)
 
     n = args.trials
     level = f"{args.confidence:.0%} CI"
-    print(f"\n{cm.label}: {n} trials against {len(pool)} possible opponent teams\n")
+    print(f"\n{cm.label}: {n} trials against {len(pool)} possible opponent teams ({level})\n")
     for name, tally in (("A", tally_a), ("B", tally_b)):
-        low, high = wilson_ci(sum(tally.wins), n, z)
-        print("=" * 72)
-        print(f"{name}: {tally.name}  ({team_label(tally.team)})")
-        print(f"Team win rate  {sum(tally.wins) / n:.1%}  ({level} {low:.1%} to {high:.1%})")
-        print("=" * 72)
-        for k, member in enumerate(tally.team["members"]):
-            metres, metres_half = mean_ci(tally.distances[k], z)
-            secs, secs_half = mean_ci(tally.times[k], z)
-            place, place_half = mean_ci(tally.places[k], z)
-            print()
-            print(UmaBuilder.from_json(member).mood(MOOD))
-            print(f"  {'Results':<10} ({level})")
-            print(f"    {'Avg placement':<16} {place:.2f} ± {place_half:.2f}")
-            print(f"    {'Avg from top':<16} {metres:.2f} ± {metres_half:.2f} m   {secs:.2f} ± {secs_half:.2f} s")
-        print()
+        (print_compact if args.compact else print_full)(name, tally, n, z, level)
 
     # Both teams race the same seeds, opponents and gates, so compare them per trial.
     difference, half = paired_difference_ci([a - b for a, b in zip(tally_a.wins, tally_b.wins)], z)
