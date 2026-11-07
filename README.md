@@ -29,10 +29,10 @@ Run commands below from the repository root. A team file contains either an obje
 
 ```sh
 python -c "import json; from pathlib import Path; t=json.loads(Path('data/cm21_teams.json').read_text(encoding='utf-8')); Path('team_a.json').write_text(json.dumps(t[0], indent=2), encoding='utf-8'); Path('team_b.json').write_text(json.dumps(t[1], indent=2), encoding='utf-8')"
-python src/compare_teams.py CAPRICORN_CUP_2 data/cm21_teams.json team_a.json team_b.json --trials 1000 --rng-seed 1
+python src/compare_teams.py 21 data/cm21_teams.json team_a.json team_b.json --trials 1000 --rng-seed 1
 ```
 
-Each trial races both teams against the same two randomly selected opponents with the same seed and gate assignments. Teams with either tested ID are excluded from the opponent pool; at least two other teams must remain. The output includes team win rates, average runner gaps, and the paired win-rate difference. `--rng-seed` makes trial generation reproducible; `--confidence` sets the confidence level, and `--trials` defaults to 100. Use more trials for a more precise estimate. Results describe the supplied opponent pool and simulator, and the normal-approximation interval for the paired difference can be unreliable with few trials or rare differences.
+The meeting can also be given as `cm21` or the GlobalSim preset `CAPRICORN_CUP_2`. Each trial races both teams against the same two randomly selected opponents with the same seed and gate assignments. Teams with either tested ID are excluded from the opponent pool; at least two other teams must remain. The output includes team win rates, average runner gaps, and the paired win-rate difference. `--rng-seed` makes trial generation reproducible; `--confidence` sets the confidence level, and `--trials` defaults to 100. Use more trials for a more precise estimate. Results describe the supplied opponent pool and simulator, and the normal-approximation interval for the paired difference can be unreliable with few trials or rare differences.
 
 ## Other commands
 

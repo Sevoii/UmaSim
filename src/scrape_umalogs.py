@@ -13,15 +13,10 @@ from pathlib import Path
 import requests
 from globalsim import Aptitude, Skill, Strategy, Uma
 
+from cm_names import CM_NAMES
+
 API = "https://hakuraku.moe/api/simdata"
 PAGE_SIZE = 100
-# Global release order. Keep this list in sync as new meetings are added.
-CM_NAMES = (
-    "taurus", "gemini", "cancer", "leo", "virgo", "libra", "scorpio",
-    "sagittarius", "capricorn", "aquarius", "pisces", "aries",
-    "taurus 2", "gemini 2", "cancer 2", "leo 2", "virgo 2", "libra 2",
-    "scorpio 2", "sagittarius 2", "capricorn 2", "aquarius 2",
-)
 # hakuraku racingStyle -> GlobalSim strategy (style 6 "Debuffer" is a label; racingStyle is the real style).
 STRATEGIES = {1: Strategy.FRONT_RUNNER, 2: Strategy.PACE_CHASER, 3: Strategy.LATE_SURGER,
               4: Strategy.END_CLOSER, 5: Strategy.RUNAWAY}

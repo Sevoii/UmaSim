@@ -9,7 +9,7 @@ Team A and team B are JSON files holding either {"id": ..., "members": [...]} or
 list of 3 runners. Teams in the list with the same id are excluded from the opponents.
 
 Usage:
-    python src/compare_teams.py CAPRICORN_CUP_2 ../data/cm21_midrange_teams.json team_a.json team_b.json --trials 1000
+    python src/compare_teams.py 21 data/cm21_teams.json team_a.json team_b.json --trials 1000
 """
 import argparse
 import json
@@ -26,11 +26,29 @@ from statistics import NormalDist, fmean, stdev
 from globalsim import ChampionsMeeting, PreparedRace, RaceBuilder, Strategy, Uma, UmaBuilder
 from tqdm import tqdm
 
+from cm_names import CM_NAMES
+
 MOOD = 2  # Champions Meeting runners are at Great mood
 SKILL_LINE = re.compile(r"^    .*  #(\d+)\s+Lv\d")  # a skill row in UmaBuilder's summary
 TEAM_SIZE = 3
 FIELD_SIZE = 9
 SEED_MAX = 2 ** 31 - 1  # the retail runtime requires signed 32-bit seeds
+
+
+def parse_cm(value):
+    """Resolve a meeting number, CM ID, or GlobalSim preset name."""
+    value = value.strip()
+    match = re.fullmatch(r"(?:cm)?(\d+)", value, re.IGNORECASE)
+    if match:
+        number = int(match.group(1))
+        if not 1 <= number <= len(CM_NAMES):
+            raise argparse.ArgumentTypeError(f"Unknown meeting number {number}; supported: 1-{len(CM_NAMES)}")
+        parts = CM_NAMES[number - 1].split()
+        value = parts[0].upper() + "_CUP" + ("_" + parts[1] if len(parts) > 1 else "")
+    try:
+        return ChampionsMeeting[value.upper()]
+    except KeyError:
+        raise argparse.ArgumentTypeError(f"Unknown Champions Meeting preset: {value}") from None
 
 
 def load_team(path):
@@ -251,8 +269,8 @@ def print_compact(name, tally, n, z, level):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("cm", choices=[cm.name for cm in ChampionsMeeting], metavar="CM",
-                        help="ChampionsMeeting preset name, e.g. CAPRICORN_CUP_2")
+    parser.add_argument("cm", type=parse_cm, metavar="CM",
+                        help="Meeting number, ID, or preset name, e.g. 21, cm21, or CAPRICORN_CUP_2")
     parser.add_argument("teams", type=Path, help="Team list JSON (opponent pool)")
     parser.add_argument("team_a", type=Path, help="Team A JSON file")
     parser.add_argument("team_b", type=Path, help="Team B JSON file")
@@ -271,7 +289,7 @@ def main():
     if args.workers < 1 or args.batch_size < 1:
         parser.error("--workers and --batch-size must be at least 1")
 
-    cm = ChampionsMeeting[args.cm]
+    cm = args.cm
     z = NormalDist().inv_cdf(0.5 + args.confidence / 2)
     teams = json.loads(args.teams.read_text(encoding="utf-8"))
     team_a, team_b = load_team(args.team_a), load_team(args.team_b)
