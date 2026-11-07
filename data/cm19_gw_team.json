@@ -1,0 +1,327 @@
+{
+  "id": "Symboli Rudolf-105.8724s-20260924-team1",
+  "members": [
+    {
+      "speed": 1588,
+      "stamina": 794,
+      "power": 1186,
+      "guts": 607,
+      "wisdom": 959,
+      "strategy": "Senkou",
+      "distanceAptitude": "S",
+      "surfaceAptitude": "A",
+      "strategyAptitude": "A",
+      "charaId": 1017,
+      "skills": [
+        {
+          "skillId": "110171",
+          "level": 4,
+          "isUnique": true
+        },
+        {
+          "skillId": "200012",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200331",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200362",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200561",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200571",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200722",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201101",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201111",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201311",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201322",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201342",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201591",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201662",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201902",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "202371",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "900051",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "900061",
+          "level": 1,
+          "isUnique": false
+        }
+      ]
+    },
+    {
+      "speed": 1602,
+      "stamina": 722,
+      "power": 1086,
+      "guts": 563,
+      "wisdom": 953,
+      "strategy": "Senkou",
+      "distanceAptitude": "S",
+      "surfaceAptitude": "A",
+      "strategyAptitude": "A",
+      "charaId": 1006,
+      "skills": [
+        {
+          "skillId": "110061",
+          "level": 5,
+          "isUnique": true
+        },
+        {
+          "skillId": "200142",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200152",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200331",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200352",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200362",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200492",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201101",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201311",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201341",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201351",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201532",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201571",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201591",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201601",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201662",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201902",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "202371",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "900051",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "910151",
+          "level": 1,
+          "isUnique": false
+        }
+      ]
+    },
+    {
+      "speed": 754,
+      "stamina": 577,
+      "power": 676,
+      "guts": 461,
+      "wisdom": 1246,
+      "strategy": "Oikomi",
+      "distanceAptitude": "A",
+      "surfaceAptitude": "A",
+      "strategyAptitude": "B",
+      "charaId": 1060,
+      "skills": [
+        {
+          "skillId": "100601",
+          "level": 6,
+          "isUnique": true
+        },
+        {
+          "skillId": "200132",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200462",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200781",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200801",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200831",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200841",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200861",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200871",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200881",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200891",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200911",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "200921",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201152",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201161",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "201611",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "202362",
+          "level": 1,
+          "isUnique": false
+        },
+        {
+          "skillId": "910071",
+          "level": 1,
+          "isUnique": false
+        }
+      ]
+    }
+  ]
+}
