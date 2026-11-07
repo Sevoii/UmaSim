@@ -19,6 +19,7 @@ from pathlib import Path
 from statistics import NormalDist, fmean, stdev
 
 from globalsim import ChampionsMeeting, PreparedRace, RaceBuilder, Strategy, Uma, UmaBuilder
+from tqdm import tqdm
 
 MOOD = 2  # Champions Meeting runners are at Great mood
 TEAM_SIZE = 3
@@ -122,12 +123,14 @@ class Tally:
         self.team = team
         self.name = name
         self.wins = []  # 1 if a team member finished 1st, per trial
+        self.places = [[] for _ in range(TEAM_SIZE)]  # 1 = 1st
         self.distances = [[] for _ in range(TEAM_SIZE)]
         self.times = [[] for _ in range(TEAM_SIZE)]
 
     def add(self, orders, distances, times):
         self.wins.append(int(min(orders[:TEAM_SIZE]) == 0))
         for k in range(TEAM_SIZE):
+            self.places[k].append(orders[k] + 1)
             self.distances[k].append(distances[k])
             self.times[k].append(times[k])
 
@@ -157,28 +160,33 @@ def main():
 
     rng = random.Random(args.rng_seed)
     tally_a, tally_b = Tally(team_a, args.team_a.stem), Tally(team_b, args.team_b.stem)
-    for trial in range(1, args.trials + 1):
+    progress = tqdm(range(args.trials), desc=cm.label, unit="trial")
+    for _ in progress:
         seed = rng.randint(0, SEED_MAX)
         opponents = rng.sample(pool, 2)
         gates = rng.sample(range(FIELD_SIZE), FIELD_SIZE)
         tally_a.add(*run_trial(cm, team_a, opponents, seed, gates))
         tally_b.add(*run_trial(cm, team_b, opponents, seed, gates))
-        if trial % max(1, args.trials // 10) == 0:
-            print(f"  {trial}/{args.trials} trials | {tally_a.name} wins {sum(tally_a.wins)} | "
-                  f"{tally_b.name} wins {sum(tally_b.wins)}", flush=True)
+        progress.set_postfix({"A wins": sum(tally_a.wins), "B wins": sum(tally_b.wins)}, refresh=False)
 
     n = args.trials
     level = f"{args.confidence:.0%} CI"
     print(f"\n{cm.label}: {n} trials against {len(pool)} possible opponent teams\n")
     for name, tally in (("A", tally_a), ("B", tally_b)):
         low, high = wilson_ci(sum(tally.wins), n, z)
+        print("=" * 72)
         print(f"{name}: {tally.name}  ({team_label(tally.team)})")
-        print(f"  Team win rate  {sum(tally.wins) / n:6.1%}  ({level} {low:.1%} to {high:.1%})")
+        print(f"Team win rate  {sum(tally.wins) / n:.1%}  ({level} {low:.1%} to {high:.1%})")
+        print("=" * 72)
         for k, member in enumerate(tally.team["members"]):
             metres, metres_half = mean_ci(tally.distances[k], z)
             secs, secs_half = mean_ci(tally.times[k], z)
-            print(f"    {Uma(member['charaId']).label:<24} avg from top "
-                  f"{metres:6.2f} ± {metres_half:5.2f} m   {secs:5.2f} ± {secs_half:4.2f} s")
+            place, place_half = mean_ci(tally.places[k], z)
+            print()
+            print(UmaBuilder.from_json(member).mood(MOOD))
+            print(f"  {'Results':<10} ({level})")
+            print(f"    {'Avg placement':<16} {place:.2f} ± {place_half:.2f}")
+            print(f"    {'Avg from top':<16} {metres:.2f} ± {metres_half:.2f} m   {secs:.2f} ± {secs_half:.2f} s")
         print()
 
     # Both teams race the same seeds, opponents and gates, so compare them per trial.
