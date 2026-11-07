@@ -3,6 +3,8 @@
 Each comparison adds one skill to one Uma and leaves the rest of the team unchanged.
 Only that Uma is reported: **Taiki Shuttle** on CM18 and CM21, **Oguri Cap** on CM19.
 
+Results use @purefox's CM teams as the base team.
+
 Both teams face identical races: the same seeds, opponents (2 random teams from a 100-team pool) and gates.
 Each comparison ran 10,000 trials with `src/compare_teams.py`. All intervals are 95% CIs.
 
