@@ -3,7 +3,7 @@
 Writes ``data/<cm_id>_teams.json`` by default as ``[{"id": str, "members": [<GlobalSim horse>, ...]}]``.
 
 Usage:
-    python src/scrape_umalogs.py 21 [--out data/teams.json] [--limit 100] [--offset 0] [--snapshot ID]
+    python src/scrape_umalogs.py 21 [--out data/teams.json] [--limit 100] [--skip 0] [--snapshot ID]
 """
 import argparse
 import json
@@ -67,7 +67,7 @@ def find_snapshot(snapshot_id):
     raise SystemExit(f"Snapshot {snapshot_id} not found")
 
 
-def fetch_teams(snapshot_id, limit, offset=0):
+def fetch_teams(snapshot_id, limit, skip=0):
     """Fetch teams using the Archetypes tab defaults: one per player, ranked by CI lower bound."""
     teams = []
     while len(teams) < limit:
@@ -76,7 +76,7 @@ def fetch_teams(snapshot_id, limit, offset=0):
             "players": "unique",
             "sort": "lower",
             "limit": min(PAGE_SIZE, limit - len(teams)),
-            "offset": offset + len(teams),
+            "offset": skip + len(teams),
         })["teams"]
         if not page:
             break
@@ -131,14 +131,15 @@ def main():
     parser.add_argument("--out", type=Path,
                         help="Output JSON file (default: repository data/<cm_id>_teams.json)")
     parser.add_argument("--limit", type=int, default=100, help="Number of top teams (default 100)")
-    parser.add_argument("--offset", type=int, default=0, help="Number of ranked teams to skip (default 0)")
+    parser.add_argument("--skip", "--offset", dest="skip", type=int, default=0,
+                        help="Number of ranked teams to skip (default 0; --offset is an alias)")
     parser.add_argument("--snapshot", help="Specific snapshot id (default: latest for the CM)")
     args = parser.parse_args()
 
     if args.limit < 1:
         parser.error("--limit must be at least 1")
-    if args.offset < 0:
-        parser.error("--offset must be non-negative")
+    if args.skip < 0:
+        parser.error("--skip must be non-negative")
     try:
         cm_id = normalize_cm(args.cm_id)
     except ValueError as exc:
@@ -147,7 +148,7 @@ def main():
     if snapshot["cmId"] != cm_id and not (re.fullmatch(r"cm\d+", cm_id) and
                                              snapshot["cmId"].startswith(cm_id + "-")):
         parser.error(f"snapshot {args.snapshot} belongs to {snapshot['cmId']}, not {cm_id}")
-    teams = fetch_teams(snapshot["snapshotId"], args.limit, args.offset)
+    teams = fetch_teams(snapshot["snapshotId"], args.limit, args.skip)
     result = [{"id": team["id"], "members": [to_runner(m) for m in team["members"]]} for team in teams]
 
     path = args.out if args.out is not None else (Path(__file__).resolve().parent.parent /
